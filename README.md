@@ -1,170 +1,105 @@
-# Pack Logger 📦
+# @pack/logger
 
-Uniwersalny system logowania dla aplikacji Olivin - Backend (Django) i Frontend (React Native/Expo).
+Elegancki, uniwersalny logger dla Twoich aplikacji frontendowych (Browser / React Native / Expo) oraz backendowych (Django).
 
-## ✨ Features
+Paczka została zaprojektowana tak, aby łatwo integrować się z ekosystemem Pack App, zapewniając spójne logowanie, maskowanie danych wrażliwych i czytelność w konsoli.
 
--   🎨 **Kolorowe logi** - Rich w Pythonie, kolorowa konsola w TypeScript
--   📊 **Pełne dane developerskie** - Headers, params, query params, body
--   🔒 **Automatyczne maskowanie** - Wrażliwe dane (password, token, etc.) są automatycznie maskowane
--   🔄 **Case conversion** - Automatyczna konwersja camelCase ↔ snake_case
--   ⚡ **Wydajność** - Minimalny wpływ na performance aplikacji
--   🚫 **Bez plików** - Tylko konsola, bez zapisu do plików
+## Struktura
 
-## 🚀 Quick Start
+Repozytorium zawiera:
 
-### Backend
-
-1. **Dodaj do `pyproject.toml`:**
-
-```toml
-dependencies = [
-    "pack-logger @ file:///../packages/pack-logger/backend",
-]
-```
-
-2. **Zainstaluj:**
-
-```bash
-cd backend
-uv sync
-```
-
-3. **Skonfiguruj w `settings/base.py`:**
-
-```python
-from pack_logger import configure_logging
-
-LOGGING = configure_logging(debug=DEBUG, app_name='olivin')
-```
-
-4. **Dodaj middleware w `settings/components/middleware.py`:**
-
-```python
-MIDDLEWARE = [
-    'pack_logger.middleware.ApiLoggingMiddleware',  # ← Dodaj tutaj
-    # ... rest
-]
-```
-
-### Frontend
-
-1. **Dodaj do `package.json`:**
-
-```json
-{
-    "dependencies": {
-        "@pack/logger": "file:../packages/pack-logger/frontend"
-    }
-}
-```
-
-2. **Zbuduj paczkę:**
-
-```bash
-cd packages/pack-logger/frontend
-npm install && npm run build
-```
-
-3. **Zainstaluj:**
-
-```bash
-cd frontend
-npm install
-```
-
-4. **Użyj w kodzie:**
-
-```typescript
-import { log } from "@pack/logger";
-
-log.info("User logged in", { userId: 123 });
-```
-
-## 📖 Dokumentacja
-
--   **[USAGE.md](./USAGE.md)** - Kompletny przewodnik użycia
--   **[EXAMPLES.md](./EXAMPLES.md)** - Gotowe przykłady kodu
-
-## 💻 Podstawowe Użycie
-
-### Backend (Python)
-
-```python
-from pack_logger import log
-
-# Podstawowe logi
-log.debug("Debug message", key="value")
-log.info("Info message", key="value")
-log.warning("Warning message", key="value")
-log.error("Error message", key="value")
-log.success("Success message", key="value")
-```
-
-### Frontend (TypeScript)
-
-```typescript
-import { log } from "@pack/logger";
-
-// Podstawowe logi
-log.debug("Debug message", { key: "value" });
-log.info("Info message", { key: "value" });
-log.warn("Warning message", { key: "value" });
-log.error("Error message", { key: "value" });
-log.success("Success message", { key: "value" });
-```
-
-## 📊 Przykładowe Logi
-
-### Backend Output:
-
-```
-API Request: POST /api/orders/
-{
-  "method": "POST",
-  "path": "/api/orders/",
-  "user": "john@example.com",
-  "headers": {...},
-  "body": {...}
-}
-
-API Response: POST /api/orders/ [201] 45.23ms
-{
-  "status": 201,
-  "duration_ms": 45.23,
-  "body": {...}
-}
-```
-
-### Frontend Output:
-
-```
-[10:30:15.123] [pack] API Request: POST /api/orders/
-Data:
-  headers: {...}
-  body: {...}
-
-[10:30:15.456] [pack] API Response: POST /api/orders/ [201] 333ms
-Data:
-  status: 201
-  body: {...}
-```
-
-## 🔒 Bezpieczeństwo
-
-Automatyczne maskowanie wrażliwych danych:
-
--   Headers: `authorization`, `cookie`, `x-csrftoken`
--   Body: `password`, `token`, `secret`, `card_number`, `cvv`
-
-## 📝 Uwagi
-
--   Middleware automatycznie loguje wszystkie API requesty/response
--   Case conversion działa automatycznie (camelCase ↔ snake_case)
--   W production tylko błędy są logowane (można zmienić w konfiguracji)
-
-## 📚 Więcej Informacji
-
-Zobacz [USAGE.md](./USAGE.md) dla pełnej dokumentacji i [EXAMPLES.md](./EXAMPLES.md) dla gotowych przykładów.
+- **Frontend Package** (w głównym katalogu) - paczka NPM gotowa do instalacji.
+- **Backend Package** (w katalogu `backend/`) - kod dla Django/Python.
 
 ---
+
+## 🚀 Instalacja Frontend (NPM / Bun)
+
+Możesz zainstalować paczkę bezpośrednio z repozytorium GitHub. Dzięki temu masz zawsze dostęp do najnowszej wersji (lub konkretnego taga).
+
+### Używając Bun
+
+```bash
+bun add "git+https://github.com/radthenone/pack-logger.git#v0.1.0"
+```
+
+### Używając NPM
+
+```bash
+npm install "git+https://github.com/radthenone/pack-logger.git#v0.1.0"
+```
+
+> **Uwaga:** Instalacja przez menedżer pakietów (npm/bun) automatycznie zbuduje paczkę (skrypt `prepare`) i zainstaluje **tylko** potrzebne pliki frontendowe. Katalog `backend` zostanie pominięty w Twoim `node_modules`.
+
+---
+
+## 💻 Użycie (Frontend)
+
+Importuj loggera w swojej aplikacji:
+
+```typescript
+import { log } from "@pack/logger";
+
+// Proste logowanie
+log.info("Aplikacja uruchomiona", { env: "production" });
+
+// Logowanie błędów
+try {
+    // ... kod
+} catch (error) {
+    log.error("Wystąpił krytyczny błąd", error);
+}
+```
+
+### Dostępne metody
+
+- `log.debug(message, context?)`
+- `log.info(message, context?)`
+- `log.warn(message, context?)`
+- `log.error(message, error?, context?)`
+
+---
+
+## 🐍 Backend (Django)
+
+Kod backendowy znajduje się w katalogu `backend/`. Aby go użyć w projekcie Python/Django:
+
+1. Dodaj zależność w `pyproject.toml` lub `requirements.txt` wskazującą na podkatalog w repozytorium (jeśli Twój menedżer pakietów to obsługuje) lub skopiuj/zlinkuj kod.
+
+    Przykładowo dla `uv` / `pip` ze wsparciem dla git subdir:
+
+    ```bash
+    pip install "git+https://github.com/radthenone/pack-logger.git#subdirectory=backend"
+    ```
+
+2. Skonfiguruj `INSTALLED_APPS` i middleware zgodnie z dokumentacją w `backend/README.md` (jeśli dostępna) lub kodem źródłowym.
+
+---
+
+## 🛠️ Development
+
+Jeśli chcesz rozwijać tę paczkę lokalnie:
+
+1. Sklonuj repozytorium:
+
+    ```bash
+    git clone https://github.com/radthenone/pack-logger.git
+    cd pack-logger
+    ```
+
+2. Zainstaluj zależności:
+
+    ```bash
+    npm install
+    # lub
+    bun install
+    ```
+
+3. Buduj zmiany na bieżąco:
+    ```bash
+    npm run watch
+    ```
+
+## Licencja
+
+MIT

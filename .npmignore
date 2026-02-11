@@ -1,0 +1,8 @@
+backend/
+.gitignore
+.git/
+.editorconfig
+.idea/
+.vscode/
+tsconfig.json
+src/

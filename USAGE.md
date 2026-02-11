@@ -13,7 +13,7 @@ Kompletny przewodnik instalacji, konfiguracji i użycia loggera w aplikacji Oliv
 ```toml
 dependencies = [
     # ... existing dependencies ...
-    "pack-logger @ file:///../packages/pack-logger/backend",
+    "pack-logger @ git+https://github.com/radthenone/pack-logger.git@v0.1.0#subdirectory=backend",
 ]
 ```
 
@@ -26,30 +26,18 @@ uv sync
 
 ### Frontend (React Native/Expo)
 
-#### 1. Dodaj paczkę do `frontend/package.json`:
-
-```json
-{
-    "dependencies": {
-        "@pack/logger": "file:../packages/pack-logger/frontend"
-        // ... existing dependencies ...
-    }
-}
-```
-
-#### 2. Zbuduj paczkę TypeScript (pierwszorazowo):
-
-```bash
-cd packages/pack-logger/frontend
-npm install
-npm run build
-```
-
-#### 3. Zainstaluj w projekcie:
+#### Instalacja za pomocą Bun (rekomendowane):
 
 ```bash
 cd frontend
-npm install
+bun add "git+https://github.com/radthenone/pack-logger.git#v0.1.0"
+```
+
+#### Instalacja za pomocą NPM:
+
+```bash
+cd frontend
+npm install "git+https://github.com/radthenone/pack-logger.git#v0.1.0"
 ```
 
 ---
@@ -201,7 +189,7 @@ apiClient.interceptors.request.use(
     (error: AxiosError) => {
         log.apiError("UNKNOWN", "Request setup failed", error);
         return Promise.reject(error);
-    }
+    },
 );
 
 /**
@@ -275,7 +263,7 @@ apiClient.interceptors.response.use(
         log.apiError(error.config?.method?.toUpperCase() || "UNKNOWN", error.config?.url || "unknown", error, duration, logData);
 
         return Promise.reject(error);
-    }
+    },
 );
 
 export default apiClient;
@@ -642,8 +630,8 @@ log.apiError("POST", "/api/orders/", error, 5000, {
 
 Logger automatycznie maskuje wrażliwe dane:
 
--   **Headers**: `authorization`, `cookie`, `x-csrftoken`, `x-api-key`, `session`
--   **Body fields**: `password`, `token`, `secret`, `api_key`, `access_token`, `refresh_token`, `card_number`, `cvv`, `ssn`
+- **Headers**: `authorization`, `cookie`, `x-csrftoken`, `x-api-key`, `session`
+- **Body fields**: `password`, `token`, `secret`, `api_key`, `access_token`, `refresh_token`, `card_number`, `cvv`, `ssn`
 
 Przykład:
 
@@ -668,14 +656,12 @@ Przykład:
 ## 📝 Uwagi
 
 1. **Case Conversion**: Automatyczna konwersja `camelCase` ↔ `snake_case` działa dzięki:
-
     - Backend: `CamelCaseMiddleWare` i `CamelCaseJSONRenderer`
     - Frontend: Dane są już w `camelCase` (standard frontend)
 
 2. **Performance**: Logger nie wpływa znacząco na wydajność - loguje asynchronicznie
 
 3. **Development vs Production**:
-
     - W development: wszystkie logi są widoczne
     - W production: tylko błędy są logowane (można zmienić w konfiguracji)
 
