@@ -10,6 +10,7 @@ import os
 import time
 from typing import Any, Dict, Optional, Union
 
+from django.conf import settings
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.utils.deprecation import MiddlewareMixin
 
@@ -29,13 +30,11 @@ class ApiLoggingMiddleware(MiddlewareMixin):
     - Czas wykonania
     """
 
-    # Domyślne wykluczone ścieżki
     DEFAULT_EXCLUDED_PATHS: list[str] = [
         "/admin/",
         "/static/",
         "/media/",
         "/favicon.ico",
-        "/api/health/",
     ]
 
     SENSITIVE_HEADERS: set[str] = {
@@ -59,21 +58,27 @@ class ApiLoggingMiddleware(MiddlewareMixin):
 
     def __init__(self, get_response=None):
         """
-        Inicjalizacja middleware z obsługą zmiennej środowiskowej PACK_LOGGER_EXCLUDED_PATHS.
+        Inicjalizacja middleware z obsługą konfiguracji wykluczeń.
 
-        Zmienna środowiskowa powinna być w formacie: /admin/,/static/,/media/
+        Priorytet konfiguracji:
+        1. Django settings.PACK_LOGGER_EXCLUDED_PATHS
+        2. Zmienna środowiskowa PACK_LOGGER_EXCLUDED_PATHS
+        3. Domyślna lista DEFAULT_EXCLUDED_PATHS
         """
         super().__init__(get_response)
 
-        # Pobierz wykluczone ścieżki z zmiennej środowiskowej lub użyj domyślnych
-        excluded_env = os.environ.get("PACK_LOGGER_EXCLUDED_PATHS", "").strip()
-        if excluded_env:
-            # Parsuj ścieżki oddzielone przecinkami
-            self.excluded_paths = [
-                path.strip() for path in excluded_env.split(",") if path.strip()
-            ]
+        settings_excluded = getattr(settings, "PACK_LOGGER_EXCLUDED_PATHS", None)
+
+        if settings_excluded is not None:
+            self.excluded_paths = settings_excluded
         else:
-            self.excluded_paths = self.DEFAULT_EXCLUDED_PATHS
+            excluded_env = os.environ.get("PACK_LOGGER_EXCLUDED_PATHS", "").strip()
+            if excluded_env:
+                self.excluded_paths = [
+                    path.strip() for path in excluded_env.split(",") if path.strip()
+                ]
+            else:
+                self.excluded_paths = self.DEFAULT_EXCLUDED_PATHS
 
     def should_log(self, path: str) -> bool:
         """Sprawdza czy ścieżka powinna być logowana."""
