@@ -58,27 +58,40 @@ class ApiLoggingMiddleware(MiddlewareMixin):
 
     def __init__(self, get_response=None):
         """
-        Inicjalizacja middleware z obsługą konfiguracji wykluczeń.
+        Inicjalizacja middleware z obsługą zmiennej środowiskowej PACK_LOGGER_EXCLUDED_PATHS
+        oraz ustawień Django.
 
-        Priorytet konfiguracji:
-        1. Django settings.PACK_LOGGER_EXCLUDED_PATHS
-        2. Zmienna środowiskowa PACK_LOGGER_EXCLUDED_PATHS
-        3. Domyślna lista DEFAULT_EXCLUDED_PATHS
+        Priorytet:
+        1. Django settings (PACK_LOGGER_EXCLUDED_PATHS)
+        2. Environment variables (PACK_LOGGER_EXCLUDED_PATHS)
+        3. Defaults
         """
         super().__init__(get_response)
 
-        settings_excluded = getattr(settings, "PACK_LOGGER_EXCLUDED_PATHS", None)
+        self.excluded_paths = []
 
-        if settings_excluded is not None:
-            self.excluded_paths = settings_excluded
-        else:
+        excluded_settings = getattr(settings, "PACK_LOGGER_EXCLUDED_PATHS", None)
+        if excluded_settings:
+            if isinstance(excluded_settings, str):
+                self.excluded_paths = [
+                    path.strip()
+                    for path in excluded_settings.split(",")
+                    if path.strip()
+                ]
+            elif isinstance(excluded_settings, (list, tuple)):
+                self.excluded_paths = [
+                    str(path).strip() for path in excluded_settings if str(path).strip()
+                ]
+
+        if not self.excluded_paths:
             excluded_env = os.environ.get("PACK_LOGGER_EXCLUDED_PATHS", "").strip()
             if excluded_env:
                 self.excluded_paths = [
                     path.strip() for path in excluded_env.split(",") if path.strip()
                 ]
-            else:
-                self.excluded_paths = self.DEFAULT_EXCLUDED_PATHS
+
+        if not self.excluded_paths:
+            self.excluded_paths = self.DEFAULT_EXCLUDED_PATHS
 
     def should_log(self, path: str) -> bool:
         """Sprawdza czy ścieżka powinna być logowana."""
@@ -127,7 +140,6 @@ class ApiLoggingMiddleware(MiddlewareMixin):
             Dict: Nagłówki
         """
         headers = {}
-        # Używamy getattr, aby uniknąć błędów typowania Pyright z cached_property
         request_headers = getattr(request, "headers", {})
 
         useful_headers = [
@@ -149,7 +161,6 @@ class ApiLoggingMiddleware(MiddlewareMixin):
             if value:
                 headers[header_name] = value
 
-        # Dodaj wszystkie custom headers (X-*, Authorization, etc.)
         for key, value in request_headers.items():
             if key.lower().startswith("x-") or key.lower() in [
                 "authorization",
@@ -180,15 +191,12 @@ class ApiLoggingMiddleware(MiddlewareMixin):
         if "application/json" in content_type:
             try:
                 body = json.loads(request.body.decode("utf-8"))
-                # Body jest już w snake_case dzięki CamelCaseMiddleWare
                 return self.mask_sensitive_body(body)
             except (json.JSONDecodeError, UnicodeDecodeError):
                 return None
         elif "application/x-www-form-urlencoded" in content_type:
-            # Form data
             return dict(request.POST) if request.POST else None
         elif "multipart/form-data" in content_type:
-            # Multipart - tylko nazwy pól, nie wartości plików
             return {
                 "fields": list(request.POST.keys()) if request.POST else [],
                 "files": list(request.FILES.keys()) if request.FILES else [],
@@ -237,11 +245,9 @@ class ApiLoggingMiddleware(MiddlewareMixin):
             Optional[Any]: Body response lub None
         """
         if isinstance(response, JsonResponse):
-            # JsonResponse ma już sparsowane dane
             try:
                 body = json.loads(response.content.decode("utf-8"))
-                # Body jest już w camelCase dzięki CamelCaseJSONRenderer
-                # Ogranicz rozmiar dla dużych list
+
                 if isinstance(body, list) and len(body) > 10:
                     return {
                         "items_count": len(body),
@@ -293,11 +299,9 @@ class ApiLoggingMiddleware(MiddlewareMixin):
         if not self.should_log(request.path):
             return
 
-        # Zapisz czas rozpoczęcia
         start_time = time.time()
         request._logging_start_time = start_time  # type: ignore
 
-        # Pobierz wszystkie dane
         headers = self.get_request_headers(request)
         query_params = dict(request.GET) if request.GET else None
         body = self.get_request_body(request)
