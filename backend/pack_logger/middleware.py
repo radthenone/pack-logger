@@ -5,6 +5,7 @@ Obsługuje case conversion (camelCase ↔ snake_case).
 
 from __future__ import annotations
 
+import fnmatch
 import json
 import os
 import time
@@ -94,8 +95,15 @@ class ApiLoggingMiddleware(MiddlewareMixin):
             self.excluded_paths = self.DEFAULT_EXCLUDED_PATHS
 
     def should_log(self, path: str) -> bool:
-        """Sprawdza czy ścieżka powinna być logowana."""
-        return not any(path.startswith(excluded) for excluded in self.excluded_paths)
+        """Sprawdza czy ścieżka powinna być logowana. Obsługuje wzorce z wildcard (np. /silk/*)."""
+        for excluded in self.excluded_paths:
+            if "*" in excluded:
+                if fnmatch.fnmatch(path, excluded):
+                    return False
+            else:
+                if path.startswith(excluded):
+                    return False
+        return True
 
     def mask_sensitive_headers(self, headers: Dict[str, str]) -> Dict[str, str]:
         """Maskuje wrażliwe nagłówki."""
